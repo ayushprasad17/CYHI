@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import db from "./db.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 const app = express();
@@ -11,6 +13,58 @@ app.use(express.json());
 const asyncRoute = (fn) => (req,res) => Promise.resolve(fn(req,res)).catch(e => res.status(500).json({message:"Server error", error:e.message}));
 
 app.get("/", (req,res)=>res.json({message:"Student Information Hub Backend is running!"}));
+app.post("/api/login", asyncRoute(async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({
+      message: "Username and password are required"
+    });
+  }
+
+  const [rows] = await db.query(
+    "SELECT * FROM users WHERE username = ? LIMIT 1",
+    [username]
+  );
+
+  if (rows.length === 0) {
+    return res.status(401).json({
+      message: "Invalid username or password"
+    });
+  }
+
+  const user = rows[0];
+
+  const validPassword = await bcrypt.compare(password, user.password);
+
+  if (!validPassword) {
+    return res.status(401).json({
+      message: "Invalid username or password"
+    });
+  }
+
+  const token = jwt.sign(
+    {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      studentId: user.student_id
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  res.json({
+    message: "Login successful",
+    token,
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      studentId: user.student_id
+    }
+  });
+}));
 app.get("/api/test-db", asyncRoute(async (req,res)=>{ const [rows]=await db.query("SELECT 1 AS connected"); res.json({message:"Database connected successfully!",result:rows}); }));
 
 app.get("/api/students", asyncRoute(async (req,res)=>{ const [rows]=await db.query("SELECT * FROM students ORDER BY id DESC"); res.json(rows); }));
