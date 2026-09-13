@@ -1,0 +1,1 @@
+Admin frontend is connected to the shared CYHI backend API. Use the existing CYHI/backend server.js after replacing it with the supplied backend-server.js. Existing UI and mock fallbacks are preserved.

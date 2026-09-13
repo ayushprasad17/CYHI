@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.DS_Store
+
+admin-frontend-old/
+user-frontend-old/
+.vite/
